@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CFuse HTTP Server - Metrics Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            color: #2c3e50;
+            font-size: 24px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .controls label {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .controls select, .controls button {
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .controls button {
+            background: #3498db;
+            color: white;
+            border: none;
+        }
+
+        .controls button:hover {
+            background: #2980b9;
+        }
+
+        .last-updated {
+            font-size: 12px;
+            color: #999;
+        }
+
+        /* KPI Cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .kpi-card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .kpi-card h3 {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+            font-weight: normal;
+        }
+
+        .kpi-card .value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .kpi-card .unit {
+            font-size: 14px;
+            color: #999;
+            margin-left: 5px;
+        }
+
+        .kpi-card.success .value {
+            color: #27ae60;
+        }
+
+        .kpi-card.warning .value {
+            color: #f39c12;
+        }
+
+        .kpi-card.danger .value {
+            color: #e74c3c;
+        }
+
+        /* Chart Grid */
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .chart-card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .chart-card h2 {
+            font-size: 16px;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .chart-card.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        .chart-container.small {
+            height: 250px;
+        }
+
+        /* Error Table */
+        .error-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .error-table th {
+            background: #f8f9fa;
+            padding: 10px;
+            text-align: left;
+            border-bottom: 2px solid #dee2e6;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .error-table td {
+            padding: 10px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .error-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .error-table .timestamp {
+            color: #666;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .error-table .tool-name {
+            font-weight: 600;
+            color: #e74c3c;
+        }
+
+        .error-table .error-msg {
+            color: #666;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        /* Pagination */
+        #errorsPagination button {
+            padding: 6px 12px;
+            margin: 0 2px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        #errorsPagination button:hover:not(:disabled) {
+            background: #f8f9fa;
+        }
+
+        #errorsPagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #errorsPagination select {
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .chart-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .kpi-grid {
+                grid-template-columns: 1fr;
+            }
+
+            header {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div>
+                <h1>CFuse HTTP Server - Metrics Dashboard</h1>
+                <span class="last-updated" id="lastUpdated">Loading...</span>
+            </div>
+            <div class="controls">
+                <label for="daysSelect">时间范围:</label>
+                <select id="daysSelect">
+                    <option value="1">最近 1 天</option>
+                    <option value="2" selected>最近 2 天</option>
+                    <option value="7">最近 7 天</option>
+                    <option value="30">最近 30 天</option>
+                </select>
+                <label for="refreshInterval">刷新间隔:</label>
+                <select id="refreshInterval">
+                    <option value="0">手动</option>
+                    <option value="10">10秒</option>
+                    <option value="30" selected>30秒</option>
+                    <option value="60">60秒</option>
+                </select>
+                <button onclick="loadMetrics()">刷新</button>
+            </div>
+        </header>
+
+        <!-- KPI Cards -->
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <h3>工具调用总数</h3>
+                <div class="value" id="totalRequests">-</div>
+            </div>
+            <div class="kpi-card success">
+                <h3>HTTP 成功率 (200)</h3>
+                <div>
+                    <span class="value" id="successRate">-</span>
+                    <span class="unit">%</span>
+                </div>
+            </div>
+            <div class="kpi-card success">
+                <h3>工具执行成功率</h3>
+                <div>
+                    <span class="value" id="toolSuccessRate">-</span>
+                    <span class="unit">%</span>
+                </div>
+            </div>
+            <div class="kpi-card">
+                <h3>平均执行时间</h3>
+                <div>
+                    <span class="value" id="avgResponseTime">-</span>
+                    <span class="unit">s</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="chart-grid">
+            <!-- Timeline Chart -->
+            <div class="chart-card full-width">
+                <h2>工具调用时间线（按分钟统计）</h2>
+                <div class="chart-container">
+                    <canvas id="timelineChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Tool Calls Chart -->
+            <div class="chart-card">
+                <h2>工具调用次数</h2>
+                <div class="chart-container small">
+                    <canvas id="toolCallsChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Tool Success Rate Chart -->
+            <div class="chart-card">
+                <h2>工具成功率</h2>
+                <div class="chart-container small">
+                    <canvas id="toolSuccessChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Duration Histogram -->
+            <div class="chart-card">
+                <h2>工具执行时间分布</h2>
+                <div class="chart-container small">
+                    <canvas id="durationHistogram"></canvas>
+                </div>
+            </div>
+
+            <!-- Tool Duration Chart -->
+            <div class="chart-card">
+                <h2>各工具平均耗时</h2>
+                <div class="chart-container small">
+                    <canvas id="toolDurationChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Percentiles Card -->
+            <div class="chart-card full-width">
+                <h2>工具执行时间百分位数</h2>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; padding: 10px;">
+                    <div>
+                        <div style="color: #666; font-size: 14px;">P50 (中位数)</div>
+                        <div style="font-size: 24px; font-weight: bold; color: #27ae60;" id="p50">-</div>
+                    </div>
+                    <div>
+                        <div style="color: #666; font-size: 14px;">P95</div>
+                        <div style="font-size: 24px; font-weight: bold; color: #f39c12;" id="p95">-</div>
+                    </div>
+                    <div>
+                        <div style="color: #666; font-size: 14px;">P99</div>
+                        <div style="font-size: 24px; font-weight: bold; color: #e74c3c;" id="p99">-</div>
+                    </div>
+                    <div>
+                        <div style="color: #666; font-size: 14px;">最小值</div>
+                        <div style="font-size: 24px; font-weight: bold;" id="min">-</div>
+                    </div>
+                    <div>
+                        <div style="color: #666; font-size: 14px;">最大值</div>
+                        <div style="font-size: 24px; font-weight: bold;" id="max">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Errors -->
+            <div class="chart-card full-width">
+                <h2>错误记录 <span id="errorCount" style="color: #999; font-size: 14px; font-weight: normal;"></span></h2>
+                <div id="errorsContainer">
+                    <div class="loading">加载中...</div>
+                </div>
+                <div id="errorsPagination" style="margin-top: 15px; text-align: center; display: none;">
+                    <button onclick="changeErrorPage('first')" id="firstPageBtn">首页</button>
+                    <button onclick="changeErrorPage('prev')" id="prevPageBtn">上一页</button>
+                    <span style="margin: 0 15px;">第 <span id="currentPage">1</span> / <span id="totalPages">1</span> 页</span>
+                    <button onclick="changeErrorPage('next')" id="nextPageBtn">下一页</button>
+                    <button onclick="changeErrorPage('last')" id="lastPageBtn">末页</button>
+                    <select id="pageSizeSelect" style="margin-left: 15px;" onchange="changePageSize()">
+                        <option value="10">每页 10 条</option>
+                        <option value="20" selected>每页 20 条</option>
+                        <option value="50">每页 50 条</option>
+                        <option value="100">每页 100 条</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let charts = {};
+        let refreshTimer = null;
+        let allErrors = [];
+        let currentErrorPage = 1;
+        let errorsPerPage = 20;
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', () => {
+            loadMetrics();
+            setupRefreshInterval();
+
+            // Event listeners
+            document.getElementById('daysSelect').addEventListener('change', loadMetrics);
+            document.getElementById('refreshInterval').addEventListener('change', setupRefreshInterval);
+        });
+
+        // Setup auto-refresh
+        function setupRefreshInterval() {
+            if (refreshTimer) {
+                clearInterval(refreshTimer);
+                refreshTimer = null;
+            }
+
+            const interval = parseInt(document.getElementById('refreshInterval').value);
+            if (interval > 0) {
+                refreshTimer = setInterval(loadMetrics, interval * 1000);
+            }
+        }
+
+        // Load metrics from API
+        async function loadMetrics() {
+            try {
+                const days = document.getElementById('daysSelect').value;
+                const response = await fetch(`/api/metrics?days=${days}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                updateDashboard(data);
+                
+                // Update last updated time
+                const now = new Date().toLocaleString('zh-CN');
+                document.getElementById('lastUpdated').textContent = `最后更新: ${now}`;
+            } catch (error) {
+                console.error('Failed to load metrics:', error);
+                document.getElementById('lastUpdated').textContent = `加载失败: ${error.message}`;
+            }
+        }
+
+        // Update dashboard with new data
+        function updateDashboard(data) {
+            // Update KPIs
+            document.getElementById('totalRequests').textContent = data.overview.total_requests.toLocaleString();
+            document.getElementById('successRate').textContent = data.overview.success_rate;
+            document.getElementById('toolSuccessRate').textContent = data.overview.tool_success_rate;
+            document.getElementById('avgResponseTime').textContent = data.overview.avg_response_time;
+
+            // Update percentiles
+            if (data.performance.percentiles.p50 !== undefined) {
+                document.getElementById('p50').textContent = data.performance.percentiles.p50 + 's';
+                document.getElementById('p95').textContent = data.performance.percentiles.p95 + 's';
+                document.getElementById('p99').textContent = data.performance.percentiles.p99 + 's';
+                document.getElementById('min').textContent = data.performance.percentiles.min + 's';
+                document.getElementById('max').textContent = data.performance.percentiles.max + 's';
+            }
+
+            // Update charts
+            updateTimelineChart(data.requests.timeline);
+            updateToolCallsChart(data.tools.by_name);
+            updateToolSuccessChart(data.tools.success_rate_by_tool);
+            updateDurationHistogram(data.performance.duration_histogram);
+            updateToolDurationChart(data.tools.avg_duration_by_tool);
+
+            // Update errors table with pagination
+            allErrors = data.errors.items || [];
+            currentErrorPage = 1;
+            updateErrorsDisplay();
+        }
+
+        // Timeline Chart
+        function updateTimelineChart(timeline) {
+            const ctx = document.getElementById('timelineChart').getContext('2d');
+            
+            const labels = timeline.map(t => t.timestamp);
+            const successData = timeline.map(t => t.success);
+            const failedData = timeline.map(t => t.failed);
+
+            if (charts.timeline) {
+                charts.timeline.destroy();
+            }
+
+            charts.timeline = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: '成功',
+                            data: successData,
+                            borderColor: '#27ae60',
+                            backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: '失败',
+                            data: failedData,
+                            borderColor: '#e74c3c',
+                            backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        },
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Tool Calls Chart
+        function updateToolCallsChart(toolsByName) {
+            const ctx = document.getElementById('toolCallsChart').getContext('2d');
+            
+            const labels = Object.keys(toolsByName);
+            const data = labels.map(name => toolsByName[name].total);
+
+            if (charts.toolCalls) {
+                charts.toolCalls.destroy();
+            }
+
+            charts.toolCalls = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '调用次数',
+                        data: data,
+                        backgroundColor: '#3498db'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Tool Success Rate Chart
+        function updateToolSuccessChart(successRateByTool) {
+            const ctx = document.getElementById('toolSuccessChart').getContext('2d');
+            
+            const labels = Object.keys(successRateByTool);
+            const data = labels.map(name => successRateByTool[name]);
+
+            if (charts.toolSuccess) {
+                charts.toolSuccess.destroy();
+            }
+
+            const colors = data.map(rate => {
+                if (rate >= 95) return '#27ae60';
+                if (rate >= 80) return '#f39c12';
+                return '#e74c3c';
+            });
+
+            charts.toolSuccess = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '成功率 (%)',
+                        data: data,
+                        backgroundColor: colors
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+
+        // Duration Histogram
+        function updateDurationHistogram(histogram) {
+            const ctx = document.getElementById('durationHistogram').getContext('2d');
+            
+            const labels = histogram.map(h => h.label);
+            const data = histogram.map(h => h.count);
+
+            if (charts.histogram) {
+                charts.histogram.destroy();
+            }
+
+            charts.histogram = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '请求数',
+                        data: data,
+                        backgroundColor: '#9b59b6'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Tool Duration Chart
+        function updateToolDurationChart(avgDurationByTool) {
+            const ctx = document.getElementById('toolDurationChart').getContext('2d');
+            
+            // Sort by duration descending
+            const sorted = Object.entries(avgDurationByTool).sort((a, b) => b[1] - a[1]);
+            const labels = sorted.map(([name, _]) => name);
+            const data = sorted.map(([_, duration]) => duration);
+
+            if (charts.toolDuration) {
+                charts.toolDuration.destroy();
+            }
+
+            charts.toolDuration = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '平均耗时 (秒)',
+                        data: data,
+                        backgroundColor: '#e67e22'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update errors display with pagination
+        function updateErrorsDisplay() {
+            const container = document.getElementById('errorsContainer');
+            const pagination = document.getElementById('errorsPagination');
+            const errorCount = document.getElementById('errorCount');
+            
+            const totalErrors = allErrors.length;
+            errorCount.textContent = `(共 ${totalErrors} 条)`;
+            
+            if (totalErrors === 0) {
+                container.innerHTML = '<div class="empty-state">暂无错误记录</div>';
+                pagination.style.display = 'none';
+                return;
+            }
+
+            // Calculate pagination
+            const totalPages = Math.ceil(totalErrors / errorsPerPage);
+            const startIdx = (currentErrorPage - 1) * errorsPerPage;
+            const endIdx = Math.min(startIdx + errorsPerPage, totalErrors);
+            const pageErrors = allErrors.slice(startIdx, endIdx);
+
+            // Build table
+            let html = '<table class="error-table"><thead><tr>';
+            html += '<th style="width: 180px;">时间</th><th style="width: 150px;">工具</th><th>错误信息</th>';
+            html += '</tr></thead><tbody>';
+
+            pageErrors.forEach(error => {
+                const timestamp = error.timestamp ? new Date(error.timestamp).toLocaleString('zh-CN') : '-';
+                html += '<tr>';
+                html += `<td class="timestamp">${timestamp}</td>`;
+                html += `<td class="tool-name">${escapeHtml(error.tool_name)}</td>`;
+                html += `<td class="error-msg">${escapeHtml(error.error)}</td>`;
+                html += '</tr>';
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+
+            // Update pagination controls
+            pagination.style.display = 'block';
+            document.getElementById('currentPage').textContent = currentErrorPage;
+            document.getElementById('totalPages').textContent = totalPages;
+            
+            document.getElementById('firstPageBtn').disabled = currentErrorPage === 1;
+            document.getElementById('prevPageBtn').disabled = currentErrorPage === 1;
+            document.getElementById('nextPageBtn').disabled = currentErrorPage === totalPages;
+            document.getElementById('lastPageBtn').disabled = currentErrorPage === totalPages;
+        }
+
+        // Change error page
+        function changeErrorPage(action) {
+            const totalPages = Math.ceil(allErrors.length / errorsPerPage);
+            
+            switch(action) {
+                case 'first':
+                    currentErrorPage = 1;
+                    break;
+                case 'prev':
+                    if (currentErrorPage > 1) currentErrorPage--;
+                    break;
+                case 'next':
+                    if (currentErrorPage < totalPages) currentErrorPage++;
+                    break;
+                case 'last':
+                    currentErrorPage = totalPages;
+                    break;
+            }
+            
+            updateErrorsDisplay();
+        }
+
+        // Change page size
+        function changePageSize() {
+            errorsPerPage = parseInt(document.getElementById('pageSizeSelect').value);
+            currentErrorPage = 1;
+            updateErrorsDisplay();
+        }
+
+        // Utility function to escape HTML
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+    </script>
+</body>
+</html>
+
