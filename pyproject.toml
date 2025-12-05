@@ -1,0 +1,73 @@
+[project]
+name = "cfuse"
+version = "0.1.0"
+description = "CodeFuse-Agent: A lightweight, high-performance AI programming assistant framework"
+authors = [{name = "CodeFuse Team"}]
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+
+dependencies = [
+    "openai>=1.0.0",
+    "rich>=13.0.0",
+    "prompt-toolkit>=3.0.0",
+    "pydantic>=2.0.0",
+    "pyyaml>=6.0",
+    "click>=8.0.0",
+    "structlog>=23.0.0",
+    "flask>=3.0.0",
+    "gunicorn>=21.0.0",
+    "dnspython>=2.6.1",
+    "prometheus-client>=0.19.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0.0",
+]
+
+anthropic = [
+    "anthropic>=0.8.0",
+]
+
+gemini = [
+    "google-generativeai>=0.3.0",
+]
+
+# Optional: Python-based ripgrep as fallback
+ripgrep = [
+    "ripgrep-python>=0.1.0",
+]
+
+[project.scripts]
+cfuse = "codefuse.cli.main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["codefuse"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"codefuse/tools/utils/ripgrep" = "codefuse/tools/utils/ripgrep"
+"codefuse/cli/templates" = "codefuse/cli/templates"
+
+[tool.black]
+line-length = 100
+target-version = ['py310']
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "I", "N", "W"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+

@@ -1,0 +1,19 @@
+llm:
+  provider: openai_compatible
+  model: ${LLM_MODEL} 
+  api_key: ${OPENAI_API_KEY}
+  base_url: ${LLM_BASE_URL}
+  temperature: 0.0
+  max_tokens: null
+  timeout: 60
+
+agent_config:
+  max_iterations: 200
+  max_context_tokens: 128000
+  enable_tools: true
+  yolo: false
+  agent: default
+
+logging:
+  logs_dir: ~/.cfuse/logs
+  verbose: false

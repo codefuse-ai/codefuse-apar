@@ -1,0 +1,13 @@
+openai>=1.0.0
+rich>=13.0.0
+prompt-toolkit>=3.0.0
+pydantic>=2.0.0
+pyyaml>=6.0
+click>=8.0.0
+structlog>=23.0.0
+requests>=2.31.0  # For remote tool execution
+flask>=3.0.0  # Production HTTP server
+gunicorn>=21.0.0  # WSGI server for multi-process
+dnspython>=2.6.1  # Security fix for gunicorn dependency
+prometheus-client>=0.19.0  # Metrics collection
+
