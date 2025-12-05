@@ -37,7 +37,7 @@ We observed that 88% of instances (440/500) included self-generated tests during
 
 **Influence of attempt count to overall performance**
 
-A single rollout achieves 65.2% success rate (326/500), while the best-of-N oracle reaches Y% (X/500)—a gap of Z percentage points. This demonstrates that correct patches do exist among the rollouts; the challenge lies in identifying them.
+A single rollout achieves 65.2% success rate (326/500), while the best-of-N oracle reaches 82.4% (412/500)—a gap of 17.2% percentage points. This demonstrates that correct patches do exist among the rollouts; the challenge lies in identifying them.
 
 
 
