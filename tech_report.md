@@ -33,7 +33,9 @@ We observed that 88% of instances (440/500) included self-generated tests during
 
 **Finding 2: Multiple rollouts reveal stronger collective potential.**
 
-![](./images/oracle_vs_adversary_performance.png)
+<div align="center">
+<img src="./images/oracle_vs_adversary_performance.png" width="75%">
+</div>
 
 **Influence of attempt count to overall performance**
 
@@ -52,7 +54,9 @@ The first stage employs our agent framework to generate diverse candidate patche
 #### 3.1.1 CodeFuse Agent Architecture
 CodeFuse-Agent(CFuse) is a lightweight, cleanly-architected agent framework designed for research and experimentation. It is fully open-source and can be installed with a single `pip install` command, providing a complete yet minimal toolset for code related task. We open-source CFuse to facilitate reproducible research and encourage further exploration of LLM-based coding agents.
 
-![](./images/CFuse_Architecture.png)
+<div align="center">
+<img src="./images/CFuse_Architecture.png" width="75%">
+</div>
 
 | **Layer** | **Responsibility** |
 | :--- | :--- |
@@ -89,7 +93,10 @@ The framework provides six built-in tools for code exploration and modification:
 
 
 ### 3.2 Stage 2: Trajectory-Aware Test Time Scaling
-![](./images/TTS_framework.jpg)
+<div align="center">
+<img src="./images/TTS_framework.jpg" width="75%">
+</div>
+
 
 Building upon the trajectories from Stage 1, this stage performs systematic verification and selection through three sequential components. 
 
