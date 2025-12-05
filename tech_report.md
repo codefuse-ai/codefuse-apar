@@ -100,29 +100,29 @@ Rather than designing yet another heuristic-driven test generation agent, we pro
 
 Let there be $ M $ agent execution trajectories:
 
-$$ \mathcal{T} = \{ T^{(1)}, T^{(2)}, \dots, T^{(M)} \}, $$
+$$ \mathcal{T} = \\{ T^{(1)}, T^{(2)}, \dots, T^{(M)} \\}, $$
 
-<font style="color:rgb(13, 18, 57);">where the </font>$ m $<font style="color:rgb(13, 18, 57);">-th trajectory is denoted as </font>$ T^{(m)} = \{ s^{(m)}_1, s^{(m)}_2, \dots, s^{(m)}_{L_m} \} $<font style="color:rgb(13, 18, 57);">, and </font>$ L_m $<font style="color:rgb(13, 18, 57);"> is its length. </font>$ s^{m}_i $<font style="color:rgb(13, 18, 57);">is the step it takes in </font>$ i_{th} $<font style="color:rgb(13, 18, 57);">iteration round. For each trajectory </font>$ T^{(m)} $<font style="color:rgb(13, 18, 57);">, we perform the following steps:</font>
+<font style="color:rgb(13, 18, 57);">where the </font>$ m $<font style="color:rgb(13, 18, 57);">-th trajectory is denoted as </font>$ T^{(m)} = \\{ s^{(m)}_1, s^{(m)}_2, \dots, s^{(m)}_{L_m} \\} $<font style="color:rgb(13, 18, 57);">, and </font>$ L_m $<font style="color:rgb(13, 18, 57);"> is its length. </font>$ s^{m}_i $<font style="color:rgb(13, 18, 57);">is the step it takes in </font>$ i_{th} $<font style="color:rgb(13, 18, 57);">iteration round. For each trajectory </font>$ T^{(m)} $<font style="color:rgb(13, 18, 57);">, we perform the following steps:</font>
 
 1. **Filter debugging-relevant steps**<font style="color:rgb(13, 18, 57);">:</font>
 
-$$ D^{(m)} = \left\{ s^{(m)}_i \in T^{(m)} \mid \text{IsDebugRelevant}(s^{(m)}_i) = \text{true} \right\}. $$
+$$ D^{(m)} = \\{ s^{(m)}_i \in T^{(m)} \mid \text{IsDebugRelevant}(s^{(m)}_i) = \text{true} \\}. $$
 
 2. **Extract tool invocation content**<font style="color:rgb(13, 18, 57);"> from those steps:</font>
 
 > <font style="color:rgb(13, 18, 57);">where </font>$ K_m = |C^{(m)}| $<font style="color:rgb(13, 18, 57);"> denotes the number of extracted tool invocations.</font>
 >
 
-$$ C^{(m)} = \left\{ c^{(m)}_j = \text{ExtractToolInvocation}(s) \mid s \in D^{(m)} \right\}, $$
+$$ C^{(m)} = \\{ c^{(m)}_j = \text{ExtractToolInvocation}(s) \mid s \in D^{(m)} \\}, $$
 
 3. **Apply a sliding window**<font style="color:rgb(13, 18, 57);"> of fixed size </font>$ N $<font style="color:rgb(13, 18, 57);"> over </font>$ C^{(m)} $<font style="color:rgb(13, 18, 57);"> to generate contextual segments:</font>
 
-$$ \mathcal{W}^{(m)} = \left\{ W^{(m)}_k = \left( c^{(m)}_k, c^{(m)}_{k+1}, \dots, c^{(m)}_{k+N-1} \right) \;\middle|\; k = 0, 1, \dots, \max(0, K_m - N) \right\}. $$
+$$ \mathcal{W}^{(m)} = \\{ W^{(m)}_k = ( c^{(m)}_k, c^{(m)}_{k+1}, \dots, c^{(m)}_{k+N-1} ) \mid k = 0, 1, \dots, \max(0, K_m - N) \\}. $$
 
 4. <font style="color:rgb(13, 18, 57);">(If </font>$ K_m < N $<font style="color:rgb(13, 18, 57);">, implementations may either skip the trajectory or treat the entire </font>$ C^{(m)} $<font style="color:rgb(13, 18, 57);"> as a single window.)</font>
 5. **Enrich the corresponding test file**<font style="color:rgb(13, 18, 57);"> </font>$ f^{(m)} $<font style="color:rgb(13, 18, 57);"> using each window:</font>
 
-$$ \mathcal{E}^{(m)} = \left\{ \text{ENRICH}\big(f^{(m)}, W^{(m)}_k\big) \;\middle|\; W^{(m)}_k \in \mathcal{W}^{(m)} \right\}. $$
+$$ \mathcal{E}^{(m)} = \\{ \text{ENRICH}(f^{(m)}, W^{(m)}_k) \mid W^{(m)}_k \in \mathcal{W}^{(m)} \\}. $$
 
 <font style="color:rgb(13, 18, 57);">The final output is the union of all enriched test cases across trajectories:</font>
 
@@ -131,7 +131,7 @@ $$ \mathcal{E} = \bigcup_{m=1}^{M} \mathcal{E}^{(m)}. $$
 <font style="color:rgb(13, 18, 57);">This approach ensures that context length remains bounded (by </font>$ N $<font style="color:rgb(13, 18, 57);">) while preserving only the most relevant tool interactions for debugging within each individual execution trace.</font>
 
 #### 3.2.2 Cross-Validation and Filtering
-Each candidate patch $ p_i $ is executed against the unified test suite $ T = \{t_1, t_2, ..., t_n\} $. We compute:
+Each candidate patch $ p_i $ is executed against the unified test suite $ T = \\{t_1, t_2, ..., t_n\\} $. We compute:
 
 $$ \text{score}(p_i) = \sum_{j=1}^{n} \mathbb{1}[\text{pass}(p_i, t_j)] $$
 
